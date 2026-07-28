@@ -202,13 +202,14 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task SaveAsync()
     {
-        if (CurrentEntry == null) return;
+        var entry = CurrentEntry;
+        if (entry == null) return;
 
-        var msg = $"以下のデータでセーブしますか:\n\nユーザー: {SelectedUserId}\n日時: {CurrentEntry.SaveTime:yyyy/MM/dd HH:mm:ss}\n総獲得: {CurrentEntry.CreditAll:N0}";
+        var msg = $"以下のデータでセーブしますか:\n\nユーザー: {SelectedUserId}\n日時: {entry.SaveTime:yyyy/MM/dd HH:mm:ss}\n総獲得: {entry.CreditAll:N0}";
         if (!_dialog.Confirm(msg, "確認"))
             return;
 
-        var result = await _saveService.SaveAsync(CurrentEntry.Url);
+        var result = await _saveService.SaveAsync(entry.Url);
         switch (result)
         {
             case SaveResult.Success:
