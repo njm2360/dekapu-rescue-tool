@@ -202,7 +202,7 @@ public partial class MainViewModel : ObservableObject
     {
         if (CurrentEntry == null) return;
 
-        var msg = $"以下のデータでセーブしますか:\n\nユーザー: {SelectedUserId}\n日時: {CurrentEntry.SaveTime:yyyy/MM/dd HH:mm:ss}\n総獲得: {CurrentEntry.CreditAll}";
+        var msg = $"以下のデータでセーブしますか:\n\nユーザー: {SelectedUserId}\n日時: {CurrentEntry.SaveTime:yyyy/MM/dd HH:mm:ss}\n総獲得: {CurrentEntry.CreditAll:N0}";
         if (!_dialog.Confirm(msg, "確認"))
             return;
 
