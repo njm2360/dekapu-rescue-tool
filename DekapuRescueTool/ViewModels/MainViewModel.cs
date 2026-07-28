@@ -4,7 +4,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DekapuRescueTool.Models;
 using DekapuRescueTool.Services;
-using Microsoft.Win32;
 using OxyPlot;
 using OxyPlot.Axes;
 using OxyPlot.Series;
@@ -228,14 +227,10 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task BrowseLogDirAsync()
     {
-        var dialog = new OpenFolderDialog
-        {
-            Title = "ログディレクトリを選択",
-            InitialDirectory = CurrentLogDir
-        };
-        if (dialog.ShowDialog() != true) return;
+        var folder = _dialog.SelectFolder("ログディレクトリを選択", CurrentLogDir);
+        if (folder == null) return;
 
-        CurrentLogDir = dialog.FolderName;
+        CurrentLogDir = folder;
         await LoadDataAsync();
     }
 }
