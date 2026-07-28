@@ -47,6 +47,8 @@ public partial class MainViewModel : ObservableObject
 
     private async Task LoadDataAsync()
     {
+        if (IsLoading) return;
+
         IsLoading = true;
         try
         {
@@ -224,7 +226,11 @@ public partial class MainViewModel : ObservableObject
         }
     }
 
-    [RelayCommand]
+    private bool CanBrowseLogDir() => !IsLoading;
+
+    partial void OnIsLoadingChanged(bool value) => BrowseLogDirCommand.NotifyCanExecuteChanged();
+
+    [RelayCommand(CanExecute = nameof(CanBrowseLogDir))]
     private async Task BrowseLogDirAsync()
     {
         var folder = _dialog.SelectFolder("ログディレクトリを選択", CurrentLogDir);
