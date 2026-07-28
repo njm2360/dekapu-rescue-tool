@@ -13,8 +13,9 @@ public class LogReaderService : ILogReaderService
 
     public IReadOnlyDictionary<string, List<SaveEntry>> ReadAllLogs(string directory)
     {
-        var result = new Dictionary<string, List<SaveEntry>>(StringComparer.OrdinalIgnoreCase);
-        var seenUrls = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var result = new Dictionary<string, List<SaveEntry>>(StringComparer.Ordinal);
+        // URLのクエリはbase64urlを含むため大文字小文字を区別して比較する
+        var seenUrls = new HashSet<string>(StringComparer.Ordinal);
 
         if (!Directory.Exists(directory))
             return result;
