@@ -7,6 +7,7 @@ public class SaveService : ISaveService
 {
     private static readonly HttpClient _http = new()
     {
+        Timeout = TimeSpan.FromSeconds(15),
         DefaultRequestHeaders = { { "User-Agent", "DekapuRescueTool/1.0" } }
     };
 
@@ -21,6 +22,10 @@ public class SaveService : ISaveService
                 HttpStatusCode.Conflict => SaveResult.Duplicate,
                 _ => SaveResult.Error
             };
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+        {
+            return SaveResult.NetworkError;
         }
         catch
         {

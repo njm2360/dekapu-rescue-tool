@@ -1,6 +1,6 @@
 namespace DekapuRescueTool.Services;
 
-public enum SaveResult { Success, Duplicate, Error }
+public enum SaveResult { Success, Duplicate, NetworkError, Error }
 
 public interface ISaveService
 {

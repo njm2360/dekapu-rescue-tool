@@ -216,6 +216,9 @@ public partial class MainViewModel : ObservableObject
             case SaveResult.Duplicate:
                 _dialog.ShowWarning("このレコードは既にセーブ済みです。", "結果");
                 break;
+            case SaveResult.NetworkError:
+                _dialog.ShowError("サーバーに接続できませんでした。ネットワークを確認してください。", "結果");
+                break;
             default:
                 _dialog.ShowError("セーブに失敗しました。", "結果");
                 break;
