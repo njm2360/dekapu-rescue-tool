@@ -63,6 +63,10 @@ public partial class MainViewModel : ObservableObject
 
             SelectedUserId = UserIds.FirstOrDefault();
         }
+        catch (Exception ex)
+        {
+            _dialog.ShowError($"ログの読み込みに失敗しました。\n{ex.Message}", "エラー");
+        }
         finally
         {
             IsLoading = false;

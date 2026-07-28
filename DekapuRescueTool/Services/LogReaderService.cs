@@ -25,7 +25,14 @@ public class LogReaderService : ILogReaderService
 
         foreach (var file in logFiles)
         {
-            ProcessFile(file, result, seenUrls);
+            try
+            {
+                ProcessFile(file, result, seenUrls);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                // 読めないファイルはスキップして残りを処理する
+            }
         }
 
         return result;
