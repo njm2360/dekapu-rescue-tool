@@ -56,10 +56,7 @@ public partial class MainViewModel : ObservableObject
             _allData = data;
 
             UserIds.Clear();
-            AvailableDates.Clear();
-            DayEntries.Clear();
-            CurrentEntry = null;
-            PlotModel = new PlotModel();
+            SelectedUserId = null;
 
             foreach (var uid in _allData.Keys.OrderBy(k => k))
                 UserIds.Add(uid);
@@ -75,41 +72,44 @@ public partial class MainViewModel : ObservableObject
     partial void OnSelectedUserIdChanged(string? value)
     {
         AvailableDates.Clear();
-        DayEntries.Clear();
-        CurrentEntry = null;
-        PlotModel = new PlotModel();
+        SelectedDate = null;
 
-        if (value == null || !_allData.TryGetValue(value, out var entries)) return;
+        if (value != null && _allData.TryGetValue(value, out var entries))
+        {
+            foreach (var date in entries.Select(e => DateOnly.FromDateTime(e.SaveTime)).Distinct().OrderBy(d => d))
+                AvailableDates.Add(date);
+        }
 
-        foreach (var date in entries.Select(e => DateOnly.FromDateTime(e.SaveTime)).Distinct().OrderBy(d => d))
-            AvailableDates.Add(date);
-
-        SelectedDate = AvailableDates.LastOrDefault();
+        if (AvailableDates.Count > 0)
+            SelectedDate = AvailableDates[^1];
     }
 
     partial void OnSelectedDateChanged(DateOnly? value)
     {
         DayEntries.Clear();
-        CurrentEntry = null;
 
-        if (value == null || SelectedUserId == null) return;
-        if (!_allData.TryGetValue(SelectedUserId, out var entries)) return;
-
-        foreach (var entry in entries
-            .Where(e => DateOnly.FromDateTime(e.SaveTime) == value)
-            .OrderBy(e => e.SaveTime))
+        if (value != null && SelectedUserId != null &&
+            _allData.TryGetValue(SelectedUserId, out var entries))
         {
-            DayEntries.Add(entry);
+            foreach (var entry in entries
+                .Where(e => DateOnly.FromDateTime(e.SaveTime) == value)
+                .OrderBy(e => e.SaveTime))
+            {
+                DayEntries.Add(entry);
+            }
         }
 
         CurrentIndex = DayEntries.Count > 0 ? DayEntries.Count - 1 : 0;
         RefreshPlot();
+        UpdateCurrentEntry();
     }
 
-    partial void OnCurrentIndexChanged(int value)
+    partial void OnCurrentIndexChanged(int value) => UpdateCurrentEntry();
+
+    private void UpdateCurrentEntry()
     {
-        CurrentEntry = DayEntries.Count > 0 && value >= 0 && value < DayEntries.Count
-            ? DayEntries[value]
+        CurrentEntry = CurrentIndex >= 0 && CurrentIndex < DayEntries.Count
+            ? DayEntries[CurrentIndex]
             : null;
 
         UpdateHighlight();
