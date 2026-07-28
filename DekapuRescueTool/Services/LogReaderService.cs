@@ -1,4 +1,6 @@
+using System.Buffers.Text;
 using System.IO;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using DekapuRescueTool.Models;
@@ -87,7 +89,7 @@ public class LogReaderService : ILogReaderService
             string json = version switch
             {
                 3 => dataStr,
-                4 => DecodeV4(dataStr),
+                4 => DecodeBase64Url(dataStr),
                 _ => dataStr
             };
 
@@ -116,25 +118,16 @@ public class LogReaderService : ILogReaderService
     {
         try
         {
-            var b64 = encoded.Replace('-', '+').Replace('_', '/');
-            var padding = (4 - b64.Length % 4) % 4;
-            b64 += new string('=', padding);
-            return System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(b64));
+            return DecodeBase64Url(encoded);
         }
-        catch
+        catch (FormatException)
         {
             return encoded;
         }
     }
 
-    private static string DecodeV4(string encoded)
-    {
-        var base64 = encoded.Replace('-', '+').Replace('_', '/');
-        var padding = (4 - base64.Length % 4) % 4;
-        base64 += new string('=', padding);
-        var bytes = Convert.FromBase64String(base64);
-        return System.Text.Encoding.UTF8.GetString(bytes);
-    }
+    private static string DecodeBase64Url(string encoded)
+        => Encoding.UTF8.GetString(Base64Url.DecodeFromChars(encoded));
 
     private static Dictionary<string, string> ParseQuery(string query)
     {
