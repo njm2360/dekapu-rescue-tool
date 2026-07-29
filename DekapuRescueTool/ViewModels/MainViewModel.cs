@@ -53,6 +53,7 @@ public partial class MainViewModel : ObservableObject
         if (IsLoading) return;
 
         IsLoading = true;
+        StatusMessage = "ログを読み込んでいます...";
         try
         {
             var dir = CurrentLogDir;
@@ -66,9 +67,12 @@ public partial class MainViewModel : ObservableObject
                 UserIds.Add(uid);
 
             SelectedUserId = UserIds.FirstOrDefault();
+
+            StatusMessage = $"読み込み完了: レコード {_allData.Values.Sum(l => l.Count)}件";
         }
         catch (Exception ex)
         {
+            StatusMessage = "ログの読み込みに失敗しました";
             _dialog.ShowError($"ログの読み込みに失敗しました。\n{ex.Message}", "エラー");
         }
         finally
@@ -240,15 +244,19 @@ public partial class MainViewModel : ObservableObject
         switch (result)
         {
             case SaveResult.Success:
+                StatusMessage = $"セーブしました: {entry.SaveTime:yyyy/MM/dd HH:mm:ss}";
                 _dialog.ShowInfo("セーブに成功しました。", "結果");
                 break;
             case SaveResult.Duplicate:
+                StatusMessage = $"セーブ済みのレコードです: {entry.SaveTime:yyyy/MM/dd HH:mm:ss}";
                 _dialog.ShowWarning("このレコードは既にセーブ済みです。", "結果");
                 break;
             case SaveResult.NetworkError:
+                StatusMessage = "サーバーに接続できませんでした";
                 _dialog.ShowError("サーバーに接続できませんでした。ネットワークを確認してください。", "結果");
                 break;
             default:
+                StatusMessage = "セーブに失敗しました";
                 _dialog.ShowError("セーブに失敗しました。", "結果");
                 break;
         }
