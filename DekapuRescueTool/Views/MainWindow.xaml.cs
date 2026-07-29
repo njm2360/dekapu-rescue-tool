@@ -25,6 +25,8 @@ public partial class MainWindow : Window
         controller.UnbindMouseDown(OxyMouseButton.Right);
         controller.BindMouseDown(OxyMouseButton.Left, OxyPlot.PlotCommands.ZoomRectangle);
         controller.BindMouseDown(OxyMouseButton.Middle, OxyPlot.PlotCommands.PanAt);
+        controller.UnbindKeyDown(OxyKey.Left);
+        controller.UnbindKeyDown(OxyKey.Right);
         plotView.Controller = controller;
 
         Point? leftDownPos = null;
