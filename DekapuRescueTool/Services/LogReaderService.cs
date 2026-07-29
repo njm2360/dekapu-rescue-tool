@@ -9,14 +9,16 @@ namespace DekapuRescueTool.Services;
 
 public class LogReaderService : ILogReaderService
 {
+    private const string UrlMarker = "push.trap.games";
+
     private static readonly Regex UrlPattern = new(
         @"https://push\.trap\.games/api/v(\d+)/data\S*", RegexOptions.Compiled);
 
+    private readonly record struct FoundUrl(string Url, int Version);
 
     public LogReadResult ReadAllLogs(string directory)
     {
         var result = new Dictionary<string, List<SaveEntry>>(StringComparer.Ordinal);
-        // URLのクエリはbase64urlを含むため大文字小文字を区別して比較する
         var seenUrls = new HashSet<string>(StringComparer.Ordinal);
         var unknownVersions = 0;
 
@@ -27,46 +29,35 @@ public class LogReaderService : ILogReaderService
             .OrderBy(f => f)
             .ToArray();
 
-        foreach (var file in logFiles)
+        var perFile = new List<FoundUrl>[logFiles.Length];
+        Parallel.For(0, logFiles.Length, i =>
         {
-            try
-            {
-                ProcessFile(file, result, seenUrls, ref unknownVersions);
-            }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-            {
-                // 読めないファイルはスキップして残りを処理する
-            }
-        }
+            perFile[i] = CollectUrls(logFiles[i]);
+        });
 
-        return new LogReadResult(result, unknownVersions);
-    }
+        var uniqueUrls = new List<FoundUrl>();
+        foreach (var found in perFile)
+            foreach (var item in found)
+                if (seenUrls.Add(item.Url))
+                    uniqueUrls.Add(item);
 
-    private static void ProcessFile(
-        string filePath,
-        Dictionary<string, List<SaveEntry>> result,
-        HashSet<string> seenUrls,
-        ref int unknownVersions)
-    {
-        using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        using var reader = new StreamReader(fs);
-
-        string? line;
-
-        while ((line = reader.ReadLine()) != null)
+        var parsed = new ((string UserId, SaveEntry Entry)? Hit, bool UnknownVersion)[uniqueUrls.Count];
+        Parallel.For(0, uniqueUrls.Count, i =>
         {
-            var urlMatch = UrlPattern.Match(line);
-            if (!urlMatch.Success) continue;
+            var hit = TryParseUrl(uniqueUrls[i].Url, uniqueUrls[i].Version, out var unknownVersion);
+            parsed[i] = (hit, unknownVersion);
+        });
 
-            var rawUrl = urlMatch.Value;
-            if (!seenUrls.Add(rawUrl)) continue;
+        foreach (var (hit, unknownVersion) in parsed)
+        {
+            if (unknownVersion)
+            {
+                unknownVersions++;
+                continue;
+            }
+            if (hit == null) continue;
 
-            var version = int.Parse(urlMatch.Groups[1].Value);
-            var parsed = TryParseUrl(rawUrl, version, out var unknownVersion);
-            if (unknownVersion) unknownVersions++;
-            if (parsed == null) continue;
-
-            var (userId, entry) = parsed.Value;
+            var (userId, entry) = hit.Value;
             if (!result.TryGetValue(userId, out var list))
             {
                 list = new List<SaveEntry>();
@@ -74,6 +65,40 @@ public class LogReaderService : ILogReaderService
             }
             list.Add(entry);
         }
+
+        return new LogReadResult(result, unknownVersions);
+    }
+
+    private static List<FoundUrl> CollectUrls(string filePath)
+    {
+        var found = new List<FoundUrl>();
+        var seenUrls = new HashSet<string>(StringComparer.Ordinal);
+
+        try
+        {
+            using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite,
+                1 << 20, FileOptions.SequentialScan);
+            using var reader = new StreamReader(fs, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, 1 << 16);
+
+            string? line;
+
+            while ((line = reader.ReadLine()) != null)
+            {
+                if (!line.Contains(UrlMarker, StringComparison.Ordinal)) continue;
+
+                var urlMatch = UrlPattern.Match(line);
+                if (!urlMatch.Success) continue;
+
+                var rawUrl = urlMatch.Value;
+                if (!seenUrls.Add(rawUrl)) continue;
+
+                found.Add(new FoundUrl(rawUrl, int.Parse(urlMatch.Groups[1].Value)));
+            }
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        { }
+
+        return found;
     }
 
     private static (string UserId, SaveEntry Entry)? TryParseUrl(string rawUrl, int version, out bool unknownVersion)
