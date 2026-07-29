@@ -5,6 +5,7 @@ namespace DekapuRescueTool.Services;
 
 public class SaveService : ISaveService
 {
+    // ソケット枯渇を避けるためインスタンスを使い回す
     private static readonly HttpClient _http = new()
     {
         Timeout = TimeSpan.FromSeconds(15),
@@ -16,6 +17,7 @@ public class SaveService : ISaveService
         try
         {
             var response = await _http.GetAsync(url, ct);
+            // サーバーは登録済みのURLに409を返す
             return response.StatusCode switch
             {
                 HttpStatusCode.OK => SaveResult.Success,

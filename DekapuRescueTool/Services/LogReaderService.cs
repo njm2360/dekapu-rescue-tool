@@ -19,16 +19,19 @@ public class LogReaderService : ILogReaderService
     public LogReadResult ReadAllLogs(string directory)
     {
         var result = new Dictionary<string, List<SaveEntry>>(StringComparer.Ordinal);
+        // URLのクエリはbase64urlを含むため大文字小文字を区別して比較する
         var seenUrls = new HashSet<string>(StringComparer.Ordinal);
         var unknownVersions = 0;
 
         if (!Directory.Exists(directory))
             return new LogReadResult(result, unknownVersions);
 
+        // VRChatが出力するログのファイル名パターン
         var logFiles = Directory.GetFiles(directory, "output_log_*.txt")
             .OrderBy(f => f)
             .ToArray();
 
+        // インデックスで書き込むためファイル順は並列化後も保たれる
         var perFile = new List<FoundUrl>[logFiles.Length];
         Parallel.For(0, logFiles.Length, i =>
         {
@@ -41,6 +44,7 @@ public class LogReaderService : ILogReaderService
                 if (seenUrls.Add(item.Url))
                     uniqueUrls.Add(item);
 
+        // 同上、URL順を保つためインデックスで書き込む
         var parsed = new ((string UserId, SaveEntry Entry)? Hit, bool UnknownVersion)[uniqueUrls.Count];
         Parallel.For(0, uniqueUrls.Count, i =>
         {
@@ -72,6 +76,7 @@ public class LogReaderService : ILogReaderService
     private static List<FoundUrl> CollectUrls(string filePath)
     {
         var found = new List<FoundUrl>();
+        // URLのクエリはbase64urlを含むため大文字小文字を区別して比較する
         var seenUrls = new HashSet<string>(StringComparer.Ordinal);
 
         try
@@ -96,7 +101,9 @@ public class LogReaderService : ILogReaderService
             }
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-        { }
+        {
+            // 読めないファイルはスキップして残りを処理する
+        }
 
         return found;
     }
@@ -115,6 +122,7 @@ public class LogReaderService : ILogReaderService
 
             var userId = DecodeUserId(rawUserId);
 
+            // v3は平文JSON、v4はbase64urlエンコードされたJSON
             string? json = version switch
             {
                 3 => dataStr,
@@ -156,6 +164,7 @@ public class LogReaderService : ILogReaderService
         }
         catch (FormatException)
         {
+            // 古いログはuser_idが未エンコードのままなのでそのまま使う
             return encoded;
         }
     }

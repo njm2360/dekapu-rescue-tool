@@ -32,6 +32,8 @@ public partial class MainWindow : Window
 
         Point? leftDownPos = null;
 
+        // PlotControllerが左クリックをズーム操作として処理済み(Handled)にするため、
+        // それでも拾えるようhandledEventsToo: trueで登録する
         plotView.AddHandler(MouseDownEvent, new MouseButtonEventHandler((_, e) =>
         {
             if (e.ChangedButton == MouseButton.Left)
@@ -46,6 +48,7 @@ public partial class MainWindow : Window
             var startPos = leftDownPos.Value;
             leftDownPos = null;
 
+            // ドラッグ(ズーム操作)とクリック(点選択)を移動量で区別する
             if ((upPos - startPos).Length > 5) return;
 
             var model = viewModel.PlotModel;
