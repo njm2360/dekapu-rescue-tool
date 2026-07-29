@@ -58,7 +58,7 @@ public partial class MainViewModel : ObservableObject
         {
             var dir = CurrentLogDir;
             var data = await Task.Run(() => _logReader.ReadAllLogs(dir));
-            _allData = data;
+            _allData = data.Entries;
 
             UserIds.Clear();
             SelectedUserId = null;
@@ -69,6 +69,8 @@ public partial class MainViewModel : ObservableObject
             SelectedUserId = UserIds.FirstOrDefault();
 
             StatusMessage = $"読み込み完了: レコード {_allData.Values.Sum(l => l.Count)}件";
+            if (data.UnknownVersionCount > 0)
+                StatusMessage += $" (未対応バージョン {data.UnknownVersionCount}件をスキップ)";
         }
         catch (Exception ex)
         {
