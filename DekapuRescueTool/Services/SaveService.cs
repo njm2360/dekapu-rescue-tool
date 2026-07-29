@@ -8,7 +8,7 @@ public class SaveService : ISaveService
     private static readonly HttpClient _http = new()
     {
         Timeout = TimeSpan.FromSeconds(15),
-        DefaultRequestHeaders = { { "User-Agent", "DekapuRescueTool/1.0" } }
+        DefaultRequestHeaders = { { "User-Agent", $"{AppInfo.Name}/{AppInfo.Version}" } }
     };
 
     public async Task<SaveResult> SaveAsync(string url, CancellationToken ct = default)
