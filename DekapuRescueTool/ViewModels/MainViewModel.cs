@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using DekapuRescueTool.Models;
@@ -32,6 +34,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial PlotModel PlotModel { get; set; } = new();
     [ObservableProperty] public partial string CurrentLogDir { get; set; }
     [ObservableProperty] public partial bool IsLoading { get; set; }
+    [ObservableProperty] public partial string StatusMessage { get; set; } = "";
 
     public MainViewModel(ILogReaderService logReader, ISaveService saveService, IDialogService dialog)
     {
@@ -199,7 +202,31 @@ public partial class MainViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanNext))]
     private void Next() => CurrentIndex++;
 
-    [RelayCommand]
+    private bool HasEntry() => CurrentEntry != null;
+
+    partial void OnCurrentEntryChanged(SaveEntry? value)
+    {
+        SaveCommand.NotifyCanExecuteChanged();
+        CopyUrlCommand.NotifyCanExecuteChanged();
+    }
+
+    [RelayCommand(CanExecute = nameof(HasEntry))]
+    private void CopyUrl()
+    {
+        if (CurrentEntry == null) return;
+
+        try
+        {
+            Clipboard.SetText(CurrentEntry.Url);
+            StatusMessage = $"URLをコピーしました: {CurrentEntry.SaveTime:yyyy/MM/dd HH:mm:ss}";
+        }
+        catch (ExternalException)
+        {
+            StatusMessage = "クリップボードへのコピーに失敗しました";
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasEntry))]
     private async Task SaveAsync()
     {
         var entry = CurrentEntry;
