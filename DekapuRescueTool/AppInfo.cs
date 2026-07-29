@@ -20,6 +20,7 @@ public static class AppInfo
         if (string.IsNullOrEmpty(informational))
             return Self.GetName().Version?.ToString(3) ?? "0.0.0";
 
+        // '+'以降はgitハッシュ等のビルドメタデータなので除く
         var plus = informational.IndexOf('+');
         return plus >= 0 ? informational[..plus] : informational;
     }
