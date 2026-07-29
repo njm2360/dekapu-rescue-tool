@@ -6,8 +6,10 @@
         xmlns:converters="clr-namespace:DekapuRescueTool.Converters"
         mc:Ignorable="d"
         d:Title="でかプ データ復旧ツール"
-        SizeToContent="Height"
-        Width="680"
+        Width="740"
+        Height="420"
+        MinWidth="740"
+        MinHeight="360"
         FontSize="12">
     <Window.Resources>
         <converters:DateOnlyConverter x:Key="DateOnlyConverter"/>
@@ -26,78 +28,86 @@
             </StatusBarItem>
         </StatusBar>
 
-        <DockPanel LastChildFill="False" Margin="8">
+        <Grid Margin="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,4">
-            <TextBlock Text="ユーザー：" VerticalAlignment="Center" Margin="0,0,4,0"/>
-            <ComboBox Width="200"
-                      ItemsSource="{Binding UserIds}"
-                      SelectedItem="{Binding SelectedUserId}"/>
-            <TextBlock Text="日付：" VerticalAlignment="Center" Margin="16,0,4,0"/>
-            <ComboBox Width="130"
-                      ItemsSource="{Binding AvailableDates}"
-                      SelectedItem="{Binding SelectedDate}">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Converter={StaticResource DateOnlyConverter}}"/>
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-        </StackPanel>
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
+                <TextBlock Text="ユーザー：" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <ComboBox Width="200"
+                        ItemsSource="{Binding UserIds}"
+                        SelectedItem="{Binding SelectedUserId}"/>
+                <TextBlock Text="日付：" VerticalAlignment="Center" Margin="16,0,4,0"/>
+                <ComboBox Width="130"
+                        ItemsSource="{Binding AvailableDates}"
+                        SelectedItem="{Binding SelectedDate}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource DateOnlyConverter}}"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
 
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
-            <TextBlock Text="ログ：" VerticalAlignment="Center" Margin="0,0,4,0"/>
-            <TextBlock Text="{Binding CurrentLogDir}"
-                       VerticalAlignment="Center"
-                       MaxWidth="470" TextTrimming="CharacterEllipsis"/>
-            <Button Content="参照..." Command="{Binding BrowseLogDirCommand}" Margin="8,0,0,0"/>
-        </StackPanel>
-
-        <Separator DockPanel.Dock="Top" Margin="0,0,0,6"/>
-
-        <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <Grid Grid.Column="0" VerticalAlignment="Center" Margin="8,0">
+            <Grid Grid.Row="1" Margin="0,0,0,6">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="160"/>
-                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="日時：" VerticalAlignment="Center" Width="44"/>
-                <TextBlock Grid.Column="1" Text="{Binding CurrentEntry.SaveTime, StringFormat=yyyy/MM/dd HH:mm:ss}"
-                           FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
-                <TextBlock Grid.Column="2" Text="総獲得：" VerticalAlignment="Center" Width="44" Margin="16,0,0,0"/>
-                <TextBlock Grid.Column="3" Text="{Binding CurrentEntry.CreditAll, StringFormat=N0}"
-                           FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="0" Text="ログ：" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <TextBlock Grid.Column="1" Text="{Binding CurrentLogDir}"
+                        VerticalAlignment="Center"
+                        TextTrimming="CharacterEllipsis"
+                        ToolTip="{Binding CurrentLogDir}"/>
+                <Button Grid.Column="2" Content="参照..." Command="{Binding BrowseLogDirCommand}" Margin="8,0,0,0"/>
             </Grid>
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                <Button Content="◀" Command="{Binding PrevCommand}" Width="28" Height="28"/>
-                <Button Content="▶" Command="{Binding NextCommand}" Width="28" Height="28" Margin="4,0,0,0"/>
-                <Button Content="保存"   Command="{Binding SaveCommand}"  Width="60" Height="28" Margin="12,0,0,0"/>
-                <Button Content="URLコピー" Command="{Binding CopyUrlCommand}" Width="72" Height="28" Margin="4,0,0,0"/>
-            </StackPanel>
+            <Separator Grid.Row="2" Margin="0,0,0,6"/>
+
+            <Grid Grid.Row="3" Margin="0,0,0,6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="日時：" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <TextBlock Grid.Column="1" Text="{Binding CurrentEntry.SaveTime, StringFormat=yyyy/MM/dd HH:mm:ss}"
+                        FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2" Text="総獲得：" VerticalAlignment="Center" Margin="16,0,4,0"/>
+                <TextBlock Grid.Column="3" Text="{Binding CurrentEntry.CreditAll, StringFormat=N0}"
+                        FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+
+                <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <Button Content="◀" Command="{Binding PrevCommand}" Width="28" Height="28"/>
+                    <Button Content="▶" Command="{Binding NextCommand}" Width="28" Height="28" Margin="4,0,0,0"/>
+                    <Button Content="保存"   Command="{Binding SaveCommand}"  Width="60" Height="28" Margin="12,0,0,0"/>
+                    <Button Content="URLコピー" Command="{Binding CopyUrlCommand}" Width="72" Height="28" Margin="4,0,0,0"/>
+                </StackPanel>
+            </Grid>
+
+            <Separator Grid.Row="4" Margin="0,0,0,4"/>
+
+            <Grid Grid.Row="5">
+                <ContentControl x:Name="PlotContainer"/>
+                <Border Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"
+                        Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Text="読込中..."
+                            FontSize="18"
+                            FontWeight="Bold"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"/>
+                </Border>
+            </Grid>
         </Grid>
-
-        <Separator DockPanel.Dock="Top" Margin="0,0,0,4"/>
-
-        <Grid DockPanel.Dock="Top" Height="240">
-            <ContentControl x:Name="PlotContainer"/>
-            <Border Background="#dfdfdf"
-                    Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Text="読込中..."
-                           FontSize="18"
-                           FontWeight="Bold"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"/>
-            </Border>
-        </Grid>
-
-        </DockPanel>
     </DockPanel>
 </Window>
