@@ -13,6 +13,7 @@ public partial class MainWindow : Window
     public MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
+        Title = $"{AppInfo.DisplayName} v{AppInfo.Version}";
         DataContext = viewModel;
 
         var plotView = new PlotView();
