@@ -2,7 +2,11 @@ using DekapuRescueTool.Models;
 
 namespace DekapuRescueTool.Services;
 
+public record LogReadResult(
+    IReadOnlyDictionary<string, List<SaveEntry>> Entries,
+    int UnknownVersionCount);
+
 public interface ILogReaderService
 {
-    IReadOnlyDictionary<string, List<SaveEntry>> ReadAllLogs(string directory);
+    LogReadResult ReadAllLogs(string directory);
 }

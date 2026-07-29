@@ -13,14 +13,15 @@ public class LogReaderService : ILogReaderService
         @"https://push\.trap\.games/api/v(\d+)/data\S*", RegexOptions.Compiled);
 
 
-    public IReadOnlyDictionary<string, List<SaveEntry>> ReadAllLogs(string directory)
+    public LogReadResult ReadAllLogs(string directory)
     {
         var result = new Dictionary<string, List<SaveEntry>>(StringComparer.Ordinal);
         // URLのクエリはbase64urlを含むため大文字小文字を区別して比較する
         var seenUrls = new HashSet<string>(StringComparer.Ordinal);
+        var unknownVersions = 0;
 
         if (!Directory.Exists(directory))
-            return result;
+            return new LogReadResult(result, unknownVersions);
 
         var logFiles = Directory.GetFiles(directory, "output_log_*.txt")
             .OrderBy(f => f)
@@ -30,7 +31,7 @@ public class LogReaderService : ILogReaderService
         {
             try
             {
-                ProcessFile(file, result, seenUrls);
+                ProcessFile(file, result, seenUrls, ref unknownVersions);
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
@@ -38,13 +39,14 @@ public class LogReaderService : ILogReaderService
             }
         }
 
-        return result;
+        return new LogReadResult(result, unknownVersions);
     }
 
     private static void ProcessFile(
         string filePath,
         Dictionary<string, List<SaveEntry>> result,
-        HashSet<string> seenUrls)
+        HashSet<string> seenUrls,
+        ref int unknownVersions)
     {
         using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         using var reader = new StreamReader(fs);
@@ -60,7 +62,8 @@ public class LogReaderService : ILogReaderService
             if (!seenUrls.Add(rawUrl)) continue;
 
             var version = int.Parse(urlMatch.Groups[1].Value);
-            var parsed = TryParseUrl(rawUrl, version);
+            var parsed = TryParseUrl(rawUrl, version, out var unknownVersion);
+            if (unknownVersion) unknownVersions++;
             if (parsed == null) continue;
 
             var (userId, entry) = parsed.Value;
@@ -73,8 +76,9 @@ public class LogReaderService : ILogReaderService
         }
     }
 
-    private static (string UserId, SaveEntry Entry)? TryParseUrl(string rawUrl, int version)
+    private static (string UserId, SaveEntry Entry)? TryParseUrl(string rawUrl, int version, out bool unknownVersion)
     {
+        unknownVersion = false;
         try
         {
             var uri = new Uri(rawUrl);
@@ -86,12 +90,17 @@ public class LogReaderService : ILogReaderService
 
             var userId = DecodeUserId(rawUserId);
 
-            string json = version switch
+            string? json = version switch
             {
                 3 => dataStr,
                 4 => DecodeBase64Url(dataStr),
-                _ => dataStr
+                _ => null
             };
+            if (json == null)
+            {
+                unknownVersion = true;
+                return null;
+            }
 
             var saveData = JsonSerializer.Deserialize<SaveDataJson>(json);
             if (saveData == null) return null;
