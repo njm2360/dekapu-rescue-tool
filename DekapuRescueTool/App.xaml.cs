@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Threading;
 using DekapuRescueTool.Services;
 using DekapuRescueTool.ViewModels;
 using DekapuRescueTool.Views;
@@ -8,8 +9,14 @@ namespace DekapuRescueTool;
 
 public partial class App : Application
 {
-    private async void Application_Startup(object sender, StartupEventArgs e)
+    protected override async void OnStartup(StartupEventArgs e)
     {
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+        base.OnStartup(e);
+
         var services = new ServiceCollection();
         services.AddSingleton<ILogReaderService, LogReaderService>();
         services.AddSingleton<ISaveService, SaveService>();
@@ -19,6 +26,44 @@ public partial class App : Application
 
         var sp = services.BuildServiceProvider();
         sp.GetRequiredService<MainWindow>().Show();
-        await sp.GetRequiredService<MainViewModel>().InitializeAsync();
+
+        try
+        {
+            await sp.GetRequiredService<MainViewModel>().InitializeAsync();
+        }
+        catch (Exception ex)
+        {
+            HandleFatal("Startup", ex);
+        }
+    }
+
+    private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        e.Handled = true;
+        HandleFatal("DispatcherUnhandledException", e.Exception);
+    }
+
+    private static void OnAppDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        CrashLogger.Log("AppDomainUnhandledException", e.ExceptionObject as Exception);
+    }
+
+    private static void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        CrashLogger.Log("UnobservedTaskException", e.Exception);
+    }
+
+    private void HandleFatal(string source, Exception ex)
+    {
+        CrashLogger.Log(source, ex);
+
+        MessageBox.Show(
+            $"予期しないエラーが発生しました。アプリケーションを終了します。\n\n{ex.Message}\n\n" +
+            $"エラーログ\n{CrashLogger.LogPath}",
+            "エラー",
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
+
+        Shutdown(1);
     }
 }
