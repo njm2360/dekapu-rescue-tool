@@ -7,9 +7,9 @@
         mc:Ignorable="d"
         d:Title="でかプ データ復旧ツール"
         Width="740"
-        Height="420"
+        Height="500"
         MinWidth="740"
-        MinHeight="360"
+        MinHeight="500"
         FontSize="12">
     <Window.Resources>
         <converters:DateOnlyConverter x:Key="DateOnlyConverter"/>
@@ -98,8 +98,25 @@
             <Separator Grid.Row="4" Margin="0,0,0,4"/>
 
             <Grid Grid.Row="5">
-                <ContentControl x:Name="PlotContainer"/>
-                <Border Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <ContentControl x:Name="PlotContainer" Grid.Row="0"/>
+
+                <ScrollBar Grid.Row="1"
+                        Orientation="Horizontal"
+                        Margin="55,2,5,0"
+                        Minimum="{Binding ScrollMinimum}"
+                        Maximum="{Binding ScrollMaximum}"
+                        Value="{Binding ScrollValue, Mode=TwoWay}"
+                        ViewportSize="{Binding ScrollViewport}"
+                        SmallChange="{Binding ScrollSmallChange}"
+                        LargeChange="{Binding ScrollViewport}"/>
+
+                <Border Grid.RowSpan="2"
+                        Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"
                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibility}}">
                     <TextBlock Text="読込中..."
                             FontSize="18"
