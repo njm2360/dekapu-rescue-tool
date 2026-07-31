@@ -40,6 +40,14 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] public partial bool IsLoading { get; set; }
     [ObservableProperty] public partial string StatusMessage { get; set; } = "";
 
+    [ObservableProperty] public partial double ScrollMinimum { get; set; }
+    [ObservableProperty] public partial double ScrollMaximum { get; set; }
+    [ObservableProperty] public partial double ScrollValue { get; set; }
+    [ObservableProperty] public partial double ScrollViewport { get; set; } = 1;
+    [ObservableProperty] public partial double ScrollSmallChange { get; set; } = 1;
+
+    private bool _syncingScrollBar;
+
     public MainViewModel(ILogReaderService logReader, ISaveService saveService, IDialogService dialog)
     {
         _logReader = logReader;
@@ -208,10 +216,41 @@ public partial class MainViewModel : ObservableObject
 #pragma warning disable CS0618
             xAxis.AxisChanged += (_, _) => OnTimeRangeChanged(model, lineSeries, xAxis, yAxis);
 #pragma warning restore CS0618
+
+            SetScrollBar(xAxis, xAxis.Minimum, xAxis.Maximum - xAxis.Minimum);
+        }
+        else
+        {
+            SetScrollBar(0, 0, 0, 1);
         }
 
         PlotModel = model;
         UpdateHighlight();
+    }
+
+    private void SetScrollBar(Axis xAxis, double min, double span)
+        => SetScrollBar(xAxis.AbsoluteMinimum, xAxis.AbsoluteMaximum - span, min, span);
+
+    private void SetScrollBar(double minimum, double maximum, double value, double viewport)
+    {
+        _syncingScrollBar = true;
+        ScrollMinimum = minimum;
+        ScrollMaximum = maximum;
+        ScrollViewport = viewport;
+        ScrollSmallChange = viewport / 10;
+        ScrollValue = value;
+        _syncingScrollBar = false;
+    }
+
+    partial void OnScrollValueChanged(double value)
+    {
+        if (_syncingScrollBar) return;
+
+        var xAxis = PlotModel.Axes.OfType<DateTimeAxis>().FirstOrDefault();
+        if (xAxis == null) return;
+
+        xAxis.Zoom(value, value + ScrollViewport);
+        PlotModel.InvalidatePlot(false);
     }
 
     private static void ConfigureRange(Axis axis, double min, double max, double minRange, double padding)
@@ -235,6 +274,8 @@ public partial class MainViewModel : ObservableObject
     {
         var span = xAxis.ActualMaximum - xAxis.ActualMinimum;
         if (double.IsNaN(span)) return;
+
+        SetScrollBar(xAxis, xAxis.ActualMinimum, span);
 
         var changed = UpdateMarkerVisibility(series, span);
         changed |= FitValueAxis(series, xAxis, yAxis);
