@@ -23,6 +23,10 @@ public partial class MainViewModel : ObservableObject
 
     private ScatterSeries _highlightSeries = new();
 
+    private const double MarkerVisibleSpanDays = 1.0 / 24;
+    private const double MinTimeRangeDays = 1.0 / 1440;
+    private const double TimePaddingDays = 30.0 / 86400;
+
     public ObservableCollection<string> UserIds { get; } = new();
     public ObservableCollection<DateOnly> AvailableDates { get; } = new();
     public ObservableCollection<SaveEntry> DayEntries { get; } = new();
@@ -183,8 +187,90 @@ public partial class MainViewModel : ObservableObject
         };
         model.Series.Add(_highlightSeries);
 
+        if (DayEntries.Count > 0)
+        {
+            var xMin = DayEntries.Min(e => DateTimeAxis.ToDouble(e.SaveTime));
+            var xMax = DayEntries.Max(e => DateTimeAxis.ToDouble(e.SaveTime));
+            ConfigureRange(xAxis, xMin, xMax, MinTimeRangeDays, TimePaddingDays);
+
+            var yMin = (double)DayEntries.Min(e => e.CreditAll);
+            var yMax = (double)DayEntries.Max(e => e.CreditAll);
+
+            ConfigureRange(yAxis, yMin, yMax, Math.Max(1, Math.Abs(yMax) * 1e-6), (yMax - yMin) * 0.05);
+
+            yAxis.IsZoomEnabled = false;
+            yAxis.IsPanEnabled = false;
+
+            lineSeries.MarkerType = xAxis.Maximum - xAxis.Minimum <= MarkerVisibleSpanDays
+                ? MarkerType.Circle
+                : MarkerType.None;
+
+#pragma warning disable CS0618
+            xAxis.AxisChanged += (_, _) => OnTimeRangeChanged(model, lineSeries, xAxis, yAxis);
+#pragma warning restore CS0618
+        }
+
         PlotModel = model;
         UpdateHighlight();
+    }
+
+    private static void ConfigureRange(Axis axis, double min, double max, double minRange, double padding)
+    {
+        (min, max) = Widen(min - padding, max + padding, minRange);
+
+        axis.Minimum = axis.AbsoluteMinimum = min;
+        axis.Maximum = axis.AbsoluteMaximum = max;
+        axis.MinimumRange = minRange;
+    }
+
+    private static (double Min, double Max) Widen(double min, double max, double minRange)
+    {
+        if (max - min >= minRange) return (min, max);
+
+        var center = (min + max) / 2;
+        return (center - minRange / 2, center + minRange / 2);
+    }
+
+    private void OnTimeRangeChanged(PlotModel model, LineSeries series, Axis xAxis, Axis yAxis)
+    {
+        var span = xAxis.ActualMaximum - xAxis.ActualMinimum;
+        if (double.IsNaN(span)) return;
+
+        var changed = UpdateMarkerVisibility(series, span);
+        changed |= FitValueAxis(series, xAxis, yAxis);
+
+        if (changed)
+            model.InvalidatePlot(false);
+    }
+
+    private static bool UpdateMarkerVisibility(LineSeries series, double span)
+    {
+        var marker = span <= MarkerVisibleSpanDays ? MarkerType.Circle : MarkerType.None;
+        if (series.MarkerType == marker) return false;
+
+        series.MarkerType = marker;
+        return true;
+    }
+
+    private static bool FitValueAxis(LineSeries series, Axis xAxis, Axis yAxis)
+    {
+        var min = double.MaxValue;
+        var max = double.MinValue;
+        foreach (var p in series.Points)
+        {
+            if (p.X < xAxis.ActualMinimum || p.X > xAxis.ActualMaximum) continue;
+            if (p.Y < min) min = p.Y;
+            if (p.Y > max) max = p.Y;
+        }
+        if (min > max) return false;
+
+        var padding = (max - min) * 0.05;
+        var (lo, hi) = Widen(min - padding, max + padding, yAxis.MinimumRange);
+        if (lo == yAxis.Minimum && hi == yAxis.Maximum) return false;
+
+        yAxis.Minimum = lo;
+        yAxis.Maximum = hi;
+        return true;
     }
 
     private void UpdateHighlight()
